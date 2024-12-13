@@ -9,18 +9,53 @@ const QuestionManagement = () => {
         correctAnswerIndex: 0,
     });
     const [editingQuestionId, setEditingQuestionId] = useState(null);
+    const [authToken, setAuthToken] = useState(localStorage.getItem('authToken') || '');
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // Fetch existing questions from the backend
+    // Validate token once when the user submits
+    const validateToken = async (token) => {
+        try {
+            const response = await axios.post(
+                'http://localhost:5212/api/quiz/validate',
+                {},
+                { headers: { Authorization: `Bearer ${token}` } } // Add "Bearer"
+            );
+            if (response.status === 200) {
+                setIsAuthenticated(true);
+                localStorage.setItem('authToken', token);
+                setAuthToken(token);
+            } else {
+                alert('Invalid token. Please try again.');
+            }
+        } catch (error) {
+            console.error('Token validation failed:', error.message);
+            alert('Failed to validate the token.');
+        }
+    };
+
+    const handleTokenSubmit = () => {
+        if (!authToken) {
+            alert('Please enter a token.');
+            return;
+        }
+        validateToken(authToken);
+    };
+
+    // Fetch questions after authentication
     useEffect(() => {
-        axios
-            .get('http://localhost:5212/api/quiz/questions')
-            .then((response) => {
-                setQuestions(response.data);
-            })
-            .catch((error) => {
-                console.error('Error fetching questions:', error.message);
-            });
-    }, []);
+        if (isAuthenticated) {
+            axios
+                .get('http://localhost:5212/api/quiz/questions', {
+                    headers: { Authorization: authToken },
+                })
+                .then((response) => {
+                    setQuestions(response.data);
+                })
+                .catch((error) => {
+                    console.error('Error fetching questions:', error.message);
+                });
+        }
+    }, [isAuthenticated, authToken]);
 
     // Handle creating a new question
     const createQuestion = () => {
@@ -30,11 +65,13 @@ const QuestionManagement = () => {
         }
 
         axios
-            .post('http://localhost:5212/api/quiz/questions', newQuestion)
+            .post('http://localhost:5212/api/quiz/questions', newQuestion, {
+                headers: { Authorization: authToken },
+            })
             .then((response) => {
                 alert('Question created successfully!');
-                setQuestions([...questions, response.data]); // Add new question to the list
-                setNewQuestion({ text: '', options: ['', '', '', ''], correctAnswerIndex: 0 }); // Reset form
+                setQuestions([...questions, response.data]);
+                setNewQuestion({ text: '', options: ['', '', '', ''], correctAnswerIndex: 0 });
             })
             .catch((error) => console.error('Error creating question:', error));
     };
@@ -47,19 +84,19 @@ const QuestionManagement = () => {
         }
 
         axios
-            .put(`http://localhost:5212/api/quiz/questions/${id}`, updatedQuestion)
+            .put(`http://localhost:5212/api/quiz/questions/${id}`, updatedQuestion, {
+                headers: { Authorization: authToken },
+            })
             .then(() => {
                 alert('Question updated successfully!');
                 setQuestions((prevQuestions) =>
-                    prevQuestions.map((q) =>
-                        q.id === id ? updatedQuestion : q
-                    )
+                    prevQuestions.map((q) => (q.id === id ? updatedQuestion : q))
                 );
-                setEditingQuestionId(null); // Exit editing mode
+                setEditingQuestionId(null);
             })
             .catch((error) => {
                 console.error('Error updating question:', error);
-                alert('Failed to update the question. Please try again.');
+                alert('Failed to update the question.');
             });
     };
 
@@ -67,24 +104,34 @@ const QuestionManagement = () => {
     const deleteQuestion = (id) => {
         if (window.confirm('Are you sure you want to delete this question?')) {
             axios
-                .delete(`http://localhost:5212/api/quiz/questions/${id}`)
+                .delete(`http://localhost:5212/api/quiz/questions/${id}`, {
+                    headers: { Authorization: authToken },
+                })
                 .then(() => {
                     alert('Question deleted successfully!');
-                    setQuestions((prevQuestions) =>
-                        prevQuestions.filter((q) => q.id !== id)
-                    );
+                    setQuestions((prevQuestions) => prevQuestions.filter((q) => q.id !== id));
                 })
                 .catch((error) => {
                     console.error('Error deleting question:', error);
-                    alert('Failed to delete the question. Please try again.');
+                    alert('Failed to delete the question.');
                 });
         }
     };
 
-    // Handle canceling editing
-    const cancelEdit = () => {
-        setEditingQuestionId(null);
-    };
+    if (!isAuthenticated) {
+        return (
+            <div>
+                <h1>Enter Token</h1>
+                <input
+                    type="text"
+                    placeholder="Enter token"
+                    value={authToken}
+                    onChange={(e) => setAuthToken(e.target.value)}
+                />
+                <button onClick={handleTokenSubmit}>Submit</button>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -138,7 +185,7 @@ const QuestionManagement = () => {
                     questions.map((q) => (
                         <li key={q.id}>
                             {editingQuestionId === q.id ? (
-                                // In-Place Editing Form
+                                // Editing Form
                                 <div>
                                     <input
                                         type="text"
@@ -176,7 +223,7 @@ const QuestionManagement = () => {
                                         </div>
                                     ))}
                                     <button onClick={() => updateQuestion(q.id, q)}>Save</button>
-                                    <button onClick={cancelEdit}>Cancel</button>
+                                    <button onClick={() => setEditingQuestionId(null)}>Cancel</button>
                                 </div>
                             ) : (
                                 // Display Question

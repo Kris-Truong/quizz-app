@@ -1,15 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuizAppBackend.Data;
+using QuizAppBackend.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using QuizAppBackend.Models;
 
 [ApiController]
 [Route("api/[controller]")]
 public class QuizController : ControllerBase
 {
+    private const string FixedToken = "FixedToken123";
     private readonly QuizDbContext _context;
 
     public QuizController(QuizDbContext context)
@@ -17,10 +18,48 @@ public class QuizController : ControllerBase
         _context = context;
     }
 
+
+    [HttpPost("validate")]
+    public IActionResult ValidateToken([FromHeader(Name = "Authorization")] string token)
+    {
+        // Check if the Authorization header is present
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return BadRequest(new { message = "Authorization token is missing." });
+        }
+
+        // Remove the "Bearer" prefix, if it exists
+        const string BearerPrefix = "Bearer ";
+        if (token.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            token = token.Substring(BearerPrefix.Length).Trim();
+        }
+
+        // Validate the token against the fixed token
+        if (token == FixedToken)
+        {
+            return Ok(new { message = "Token is valid" });
+        }
+
+        return Unauthorized(new { message = "Invalid token" });
+    }
+
+
+    private bool IsAuthorized(HttpRequest request)
+    {
+        if (!request.Headers.TryGetValue("Authorization", out var providedToken))
+            return false;
+
+        return providedToken.ToString().Trim() == FixedToken;
+    }
+
     // GET: api/quiz/questions
     [HttpGet("questions")]
     public async Task<ActionResult<List<Question>>> GetAllQuestions()
     {
+        if (!IsAuthorized(Request))
+            return Unauthorized(new { message = "Invalid or missing token." });
+
         var questions = await _context.Questions.ToListAsync();
         return Ok(questions);
     }
@@ -29,6 +68,9 @@ public class QuizController : ControllerBase
     [HttpPost("questions")]
     public async Task<ActionResult<Question>> CreateQuestion([FromBody] Question newQuestion)
     {
+        if (!IsAuthorized(Request))
+            return Unauthorized(new { message = "Invalid or missing token." });
+
         if (newQuestion == null)
             return BadRequest("Question data is required.");
 
@@ -48,6 +90,9 @@ public class QuizController : ControllerBase
     [HttpPut("questions/{id}")]
     public async Task<ActionResult<Question>> EditQuestion(int id, [FromBody] Question updatedQuestion)
     {
+        if (!IsAuthorized(Request))
+            return Unauthorized(new { message = "Invalid or missing token." });
+
         var question = await _context.Questions.FindAsync(id);
         if (question == null)
             return NotFound("Question not found.");
@@ -58,7 +103,6 @@ public class QuizController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        // Return the updated question object
         return Ok(question);
     }
 
@@ -66,6 +110,9 @@ public class QuizController : ControllerBase
     [HttpDelete("questions/{id}")]
     public async Task<ActionResult> DeleteQuestion(int id)
     {
+        if (!IsAuthorized(Request))
+            return Unauthorized(new { message = "Invalid or missing token." });
+
         var question = await _context.Questions.FindAsync(id);
         if (question == null)
         {
@@ -79,8 +126,9 @@ public class QuizController : ControllerBase
     }
 
 
-    // POST: api/quiz/start
-    [HttpPost("start")]
+
+// POST: api/quiz/start
+[HttpPost("start")]
     public async Task<ActionResult<int>> StartQuiz()
     {
         var session = new QuizSession
