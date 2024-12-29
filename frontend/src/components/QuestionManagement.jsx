@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import './QuestionManagement.css';
 
 const QuestionManagement = () => {
     const [questions, setQuestions] = useState([]);
@@ -9,8 +10,21 @@ const QuestionManagement = () => {
         correctAnswerIndex: 0,
     });
     const [editingQuestionId, setEditingQuestionId] = useState(null);
-    const [authToken, setAuthToken] = useState(localStorage.getItem('authToken') || '');
+    const [authToken, setAuthToken] = useState(sessionStorage.getItem('authToken') || '');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    // Clear token on tab close
+    useEffect(() => {
+        const handleTabClose = () => {
+            sessionStorage.removeItem('authToken');
+        };
+
+        window.addEventListener('beforeunload', handleTabClose);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleTabClose);
+        };
+    }, []);
 
     // Validate token once when the user submits
     const validateToken = async (token) => {
@@ -18,11 +32,11 @@ const QuestionManagement = () => {
             const response = await axios.post(
                 'http://localhost:5212/api/quiz/validate',
                 {},
-                { headers: { Authorization: `Bearer ${token}` } } // Add "Bearer"
+                { headers: { Authorization: `Bearer ${token}` } }
             );
             if (response.status === 200) {
                 setIsAuthenticated(true);
-                localStorage.setItem('authToken', token);
+                sessionStorage.setItem('authToken', token);
                 setAuthToken(token);
             } else {
                 alert('Invalid token. Please try again.');
@@ -120,7 +134,7 @@ const QuestionManagement = () => {
 
     if (!isAuthenticated) {
         return (
-            <div>
+            <div className="auth-container">
                 <h1>Enter Token</h1>
                 <input
                     type="text"
@@ -134,117 +148,122 @@ const QuestionManagement = () => {
     }
 
     return (
-        <div>
-            <h1>Question Management</h1>
+        <div className="question-management">
+            <h1 className="page-title">Question Management</h1>
 
             {/* Create New Question Section */}
-            <div>
-                <h3>Create New Question</h3>
-                <input
-                    type="text"
-                    placeholder="Question Text"
-                    value={newQuestion.text}
-                    onChange={(e) => setNewQuestion({ ...newQuestion, text: e.target.value })}
-                />
-                <h4>Options</h4>
-                {newQuestion.options.map((option, index) => (
-                    <div key={index}>
+            <div className="create-section">
+                <div>
+                    <h3>Create New Question</h3>
+                    <textarea
+                        placeholder="Question Text"
+                        value={newQuestion.text}
+                        onChange={(e) => setNewQuestion({ ...newQuestion, text: e.target.value })}
+                        rows="3"
+                        cols="60"
+                    ></textarea>
+                    <h4>Options</h4>
+                    {newQuestion.options.map((option, index) => (
+                        <div key={index}>
+                            <input
+                                type="text"
+                                placeholder={`Option ${index + 1}`}
+                                value={option}
+                                onChange={(e) =>
+                                    setNewQuestion((prev) => {
+                                        const updatedOptions = [...prev.options];
+                                        updatedOptions[index] = e.target.value;
+                                        return { ...prev, options: updatedOptions };
+                                    })
+                                }
+                            />
+                        </div>
+                    ))}
+                    <div className="correct-answer">
+                        <label>Correct Answer Index: </label>
                         <input
-                            type="text"
-                            placeholder={`Option ${index + 1}`}
-                            value={option}
+                            type="number"
+                            min="0"
+                            max="3"
+                            value={newQuestion.correctAnswerIndex}
                             onChange={(e) =>
-                                setNewQuestion((prev) => {
-                                    const updatedOptions = [...prev.options];
-                                    updatedOptions[index] = e.target.value;
-                                    return { ...prev, options: updatedOptions };
-                                })
+                                setNewQuestion({ ...newQuestion, correctAnswerIndex: parseInt(e.target.value) || 0 })
                             }
                         />
                     </div>
-                ))}
-                <div>
-                    <label>Correct Answer Index: </label>
-                    <input
-                        type="number"
-                        min="0"
-                        max="3"
-                        value={newQuestion.correctAnswerIndex}
-                        onChange={(e) =>
-                            setNewQuestion({ ...newQuestion, correctAnswerIndex: parseInt(e.target.value) || 0 })
-                        }
-                    />
+                    <button onClick={createQuestion}>Create Question</button>
                 </div>
-                <button onClick={createQuestion}>Create Question</button>
             </div>
-
-            {/* Display Existing Questions */}
-            <h3>Existing Questions</h3>
-            <ul>
-                {questions?.length > 0 ? (
-                    questions.map((q) => (
-                        <li key={q.id}>
-                            {editingQuestionId === q.id ? (
-                                // Editing Form
-                                <div>
-                                    <input
-                                        type="text"
-                                        value={q.text}
-                                        onChange={(e) =>
-                                            setQuestions((prev) =>
-                                                prev.map((question) =>
-                                                    question.id === q.id
-                                                        ? { ...question, text: e.target.value }
-                                                        : question
-                                                )
-                                            )
-                                        }
-                                    />
-                                    {q.options.map((option, index) => (
-                                        <div key={index}>
-                                            <input
-                                                type="text"
-                                                value={option}
-                                                onChange={(e) =>
-                                                    setQuestions((prev) =>
-                                                        prev.map((question) =>
-                                                            question.id === q.id
-                                                                ? {
-                                                                    ...question,
-                                                                    options: question.options.map((opt, idx) =>
-                                                                        idx === index ? e.target.value : opt
-                                                                    ),
-                                                                }
-                                                                : question
-                                                        )
+            <div className="question-list">
+                {/* Display Existing Questions */}
+                <h3>Existing Questions</h3>
+                <ul>
+                    {questions?.length > 0 ? (
+                        questions.map((q, index) => (
+                            <li key={q.id}>
+                                {editingQuestionId === q.id ? (
+                                    // Editing Form
+                                    <div>
+                                        <span>Question {index + 1}:</span>
+                                        <input
+                                            type="text"
+                                            value={q.text}
+                                            onChange={(e) =>
+                                                setQuestions((prev) =>
+                                                    prev.map((question) =>
+                                                        question.id === q.id
+                                                            ? { ...question, text: e.target.value }
+                                                            : question
                                                     )
-                                                }
-                                            />
-                                        </div>
-                                    ))}
-                                    <button onClick={() => updateQuestion(q.id, q)}>Save</button>
-                                    <button onClick={() => setEditingQuestionId(null)}>Cancel</button>
-                                </div>
-                            ) : (
-                                // Display Question
-                                <div>
-                                    <strong>{q.text}</strong>
-                                    <ul>
-                                        {q.options.map((option, idx) => (
-                                            <li key={idx}>{`${idx + 1}. ${option}`}</li>
+                                                )
+                                            }
+                                        />
+                                        {q.options.map((option, index) => (
+                                            <div key={index}>
+                                                <input
+                                                    type="text"
+                                                    value={option}
+                                                    onChange={(e) =>
+                                                        setQuestions((prev) =>
+                                                            prev.map((question) =>
+                                                                question.id === q.id
+                                                                    ? {
+                                                                        ...question,
+                                                                        options: question.options.map((opt, idx) =>
+                                                                            idx === index ? e.target.value : opt
+                                                                        ),
+                                                                    }
+                                                                    : question
+                                                            )
+                                                        )
+                                                    }
+                                                />
+                                            </div>
                                         ))}
-                                    </ul>
-                                    <p>Correct Answer: {q.options[q.correctAnswerIndex]}</p>
-                                    <button onClick={() => setEditingQuestionId(q.id)}>Edit</button>
-                                    <button onClick={() => deleteQuestion(q.id)}>Delete</button>
-                                </div>
-                            )}
-                        </li>
-                    ))
-                ) : (
-                    <p>No questions available</p>
-                )}
-            </ul>
+                                        <button className="btn" onClick={() => updateQuestion(q.id, q)}>Save</button>
+                                        <button onClick={() => setEditingQuestionId(null)}>Cancel</button>
+                                    </div>
+                                ) : (
+                                    // Display Question
+                                    <div>
+                                        <strong className="question-text">Question {index + 1}: {q.text}</strong>
+                                        <ul>
+                                            {q.options.map((option, idx) => (
+                                                <li key={idx}>{`${idx + 1}. ${option}`}</li>
+                                            ))}
+                                        </ul>
+                                        <p>Correct Answer: {q.options[q.correctAnswerIndex]}</p>
+                                        <button className="btn" onClick={() => setEditingQuestionId(q.id)}>Edit</button>
+                                        <button onClick={() => deleteQuestion(q.id)}>Delete</button>
+                                    </div>
+                                )}
+                            </li>
+                        ))
+                    ) : (
+                        <p>No questions available</p>
+                    )}
+                </ul>
+            </div>
         </div>
     );
 };

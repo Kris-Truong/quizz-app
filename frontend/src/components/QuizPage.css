@@ -1,0 +1,109 @@
+/* General styles for quiz-container */
+.quiz-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 50px auto;
+  padding: 30px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 800px;
+}
+
+/* Styles when the quiz has started */
+.quiz-container.started {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+  padding: 40px;
+  margin-bottom: 30px;
+  max-width: 800px;
+}
+
+/* Start button styles */
+.start-quiz-container {
+  text-align: center;
+}
+
+.start-quiz-button {
+  background-color: #5635d7;
+  color: whitesmoke;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-bottom: 30px;
+}
+
+.start-quiz-button:hover {
+  background-color: #3d2699;
+}
+
+/* Styles for quiz page */
+.quiz-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.quiz-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.question {
+  background-color: #ffffff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin: 15px 0;
+}
+
+.question-text {
+  font-size: 1.1rem;
+    font-weight: bold;
+    color: #000; 
+    margin-bottom: 15px;
+}
+
+.options {
+  margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.options label {
+  display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1rem;
+    color: #333;
+}
+
+.submit-button {
+  background-color: #5635d7;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+  align-self: center;
+  width: 30%;
+}
+
+.submit-button:hover {
+  background-color: #3d2699;
+}
