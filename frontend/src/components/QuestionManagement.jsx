@@ -10,6 +10,7 @@ const QuestionManagement = () => {
         correctAnswerIndex: 0,
     });
     const [editingQuestionId, setEditingQuestionId] = useState(null);
+    const [originalQuestion, setOriginalQuestion] = useState(null);
     const [authToken, setAuthToken] = useState(sessionStorage.getItem('authToken') || '');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -73,6 +74,10 @@ const QuestionManagement = () => {
 
     // Handle creating a new question
     const createQuestion = () => {
+        if (!newQuestion.text.trim()) {
+            alert('The question text cannot be empty!');
+            return;
+        }
         if (newQuestion.options.some((option) => option.trim() === '')) {
             alert('All options must be filled!');
             return;
@@ -90,8 +95,19 @@ const QuestionManagement = () => {
             .catch((error) => console.error('Error creating question:', error));
     };
 
+    //Handle reverting back to original question if editing is cancel
+    const handleEditClick = (question) => {
+        setOriginalQuestion(question); // Save the original question for rollback
+        setEditingQuestionId(question.id); // Enable edit mode
+    };
+
     // Handle updating an existing question
     const updateQuestion = (id, updatedQuestion) => {
+        if (!updatedQuestion.text.trim()) {
+            alert('The question text cannot be empty!');
+            return;
+        }
+
         if (updatedQuestion.options.some((option) => option.trim() === '')) {
             alert('All options must be filled!');
             return;
@@ -241,7 +257,21 @@ const QuestionManagement = () => {
                                             </div>
                                         ))}
                                         <button className="btn" onClick={() => updateQuestion(q.id, q)}>Save</button>
-                                        <button onClick={() => setEditingQuestionId(null)}>Cancel</button>
+                                        <button
+                                            onClick={() => {
+                                                if (originalQuestion) {
+                                                    setQuestions((prevQuestions) =>
+                                                        prevQuestions.map((q) =>
+                                                            q.id === originalQuestion.id ? originalQuestion : q
+                                                        )
+                                                    );
+                                                }
+                                                setEditingQuestionId(null); // Exit edit mode
+                                                setOriginalQuestion(null); // Clear backup
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
                                     </div>
                                 ) : (
                                     // Display Question
@@ -253,7 +283,7 @@ const QuestionManagement = () => {
                                             ))}
                                         </ul>
                                         <p>Correct Answer: {q.options[q.correctAnswerIndex]}</p>
-                                        <button className="btn" onClick={() => setEditingQuestionId(q.id)}>Edit</button>
+                                        <button className="btn" onClick={() => handleEditClick(q)}>Edit</button>
                                         <button onClick={() => deleteQuestion(q.id)}>Delete</button>
                                     </div>
                                 )}

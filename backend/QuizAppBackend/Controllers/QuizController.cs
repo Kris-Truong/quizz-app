@@ -74,7 +74,10 @@ public class QuizController : ControllerBase
         if (newQuestion == null)
             return BadRequest("Question data is required.");
 
-        if (newQuestion.Options == null || newQuestion.Options.Count < 2)
+        if (string.IsNullOrWhiteSpace(newQuestion.Text))
+            return BadRequest("Question text is required.");
+
+        if (newQuestion.Options == null || newQuestion.Options.Count != 4)
             return BadRequest("A question must have at least two options.");
 
         if (newQuestion.CorrectAnswerIndex < 0 || newQuestion.CorrectAnswerIndex >= newQuestion.Options.Count)
@@ -83,6 +86,8 @@ public class QuizController : ControllerBase
         _context.Questions.Add(newQuestion);
         await _context.SaveChangesAsync();
 
+        //CreatedAtAction is used to give a URL pointing to the newly created resource. In this case, url starts with the url of getallquestions plus the new id created
+        //This is best practice to follow eventhough you may not need the backend to return the id or newQuestion contains when created
         return CreatedAtAction(nameof(GetAllQuestions), new { id = newQuestion.Id }, newQuestion);
     }
 
@@ -132,7 +137,10 @@ public class QuizController : ControllerBase
     public async Task<ActionResult<int>> StartQuiz()
     {
         var session = new QuizSession
+
         {
+            //Guid.NewGuid(): A Guid (Globally Unique Identifier) used to ensure that each value is different across systems and sessions
+            //GetHashCode(): This is a method that returns an integer representation of the Guid so it can be stored as key id in database
             QuizId = Guid.NewGuid().GetHashCode(),
             Questions = await _context.Questions.ToListAsync()
         };

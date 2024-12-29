@@ -31,7 +31,7 @@ const QuizPage = () => {
     axios.post(`http://localhost:5212/api/quiz/${sessionId}/submit`, userAnswers)
       .then(response => {
         const score = response.data;
-        navigate('/score/:sessionId', { state: { score } });
+        navigate(`/score/${sessionId}`, { state: { score } });
       })
       .catch(error => console.error('Error submitting answers:', error));
   };
