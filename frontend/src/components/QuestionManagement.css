@@ -90,7 +90,7 @@
     border: 1px solid #ccc;
     border-radius: 8px;
     box-sizing: border-box;
-    font-family: 'roboto', 'sanserif';
+    font-family: 'roboto', 'sanserif'; 
 }
 
 /* Specific styling for the textarea */
